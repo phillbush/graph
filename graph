@@ -1,0 +1,462 @@
+#!/usr/bin/awk -f
+
+# show usage
+function usage() {
+	printf "usage: progname [options] arguments ...\n" >"/dev/stderr"
+	error = 1
+	exit error
+}
+
+# print error and exit
+function err(str) {
+	printf "graph: %s\n", str >"/dev/stderr"
+	error = 1
+	exit error
+}
+
+# print warning
+function warn(str) {
+	printf "graph: %s\n", str >"/dev/stderr"
+	warning = 1
+}
+
+# scale x-value
+function xscale(x) {
+	return int((x - xmin) / (xmax - xmin) * (width - 1) + 0.5)
+}
+
+# scale y-value
+function yscale(y) {
+	return int(((y - ymin) / (ymax - ymin)) * (height - 1) + 0.5)
+}
+
+# put string s in xlabel
+function splot(x, s,    i, n) {
+	n = length(s)
+	for (i = 0; i < n; i++) {
+		xlabel[offx + int(x / 2) + i] = substr(s, i + 1, 1)
+	}
+}
+
+# create tick marks for both axes
+function ticks(    n, i) {
+	for (i = 1; i <= nb; i++) {
+		n = xscale(bticks[i])
+		hastick["x", int(int(n) / 2)] = i
+		splot(n, bticks[i])
+	}
+	for (i = 1; i <= nl; i++) {
+		hastick["y", int(int(yscale(lticks[i])) / 4)] = i
+	}
+}
+
+# put braille character in array
+function plot(x, y,    i, j) {
+	i = int(x / 2)
+	j = int(y / 4)
+	array[i, j] = or(array[i, j], braille[(x % 2), (y % 4)])
+}
+
+# create data points
+function data(    i) {
+	for (i = 1; i <= nd; i++) {
+		plot(xscale(x[i]), yscale(y[i]))
+	}
+}
+
+# print graph from array
+function draw(    s, i, j, w, h, len) {
+	printf "%" offy + 1 "s", ""
+	s = sprintf("┌%" int(width / 2) "s┐", "")
+	gsub(/ /, "─", s)
+	printf "%s\n", s
+	w = int(width / 2)
+	h = int(height / 4)
+	for (i = h; i >= 0; i--) {
+		if (("y", i) in hastick)
+			printf "%" offy "d ┤", lticks[hastick["y", i]]
+		else
+			printf "%" offy "s │", ""
+		for (j = 0; j < w; j++)
+			printf ((j, i) in array ? ch[array[j,i]] : ch[0])
+		printf "│\n";
+	}
+	printf "%" offy + 1 "s└", ""
+	for (j = 0; j < w; j++) {
+		if (("x", j) in hastick) {
+			printf "┬"
+		} else {
+			printf "─"
+		}
+	}
+	printf "┘\n%" int(offx / 2) "s", ""
+	for (j = 0; j < w; j++) {
+		printf (j in xlabel ? xlabel[j] : " ")
+	}
+	print ""
+	if (label) {
+		printf("%" int((offy + 3 + w + length(label)) / 2) "s\n", label)
+	}
+}
+
+# set braille characters and frame dimensions
+BEGIN {
+	braille[1,3] = 1
+	braille[1,2] = 2
+	braille[1,1] = 4
+	braille[0,3] = 8
+	braille[0,2] = 16
+	braille[0,1] = 32
+	braille[0,0] = 64
+	braille[1,0] = 128
+	ch[0] = "⠀"
+	ch[1] = "⠁"
+	ch[2] = "⠂"
+	ch[3] = "⠃"
+	ch[4] = "⠄"
+	ch[5] = "⠅"
+	ch[6] = "⠆"
+	ch[7] = "⠇"
+	ch[8] = "⠈"
+	ch[9] = "⠉"
+	ch[10] = "⠊"
+	ch[11] = "⠋"
+	ch[12] = "⠌"
+	ch[13] = "⠍"
+	ch[14] = "⠎"
+	ch[15] = "⠏"
+	ch[16] = "⠐"
+	ch[17] = "⠑"
+	ch[18] = "⠒"
+	ch[19] = "⠓"
+	ch[20] = "⠔"
+	ch[21] = "⠕"
+	ch[22] = "⠖"
+	ch[23] = "⠗"
+	ch[24] = "⠘"
+	ch[25] = "⠙"
+	ch[26] = "⠚"
+	ch[27] = "⠛"
+	ch[28] = "⠜"
+	ch[29] = "⠝"
+	ch[30] = "⠞"
+	ch[31] = "⠟"
+	ch[32] = "⠠"
+	ch[33] = "⠡"
+	ch[34] = "⠢"
+	ch[35] = "⠣"
+	ch[36] = "⠤"
+	ch[37] = "⠥"
+	ch[38] = "⠦"
+	ch[39] = "⠧"
+	ch[40] = "⠨"
+	ch[41] = "⠩"
+	ch[42] = "⠪"
+	ch[43] = "⠫"
+	ch[44] = "⠬"
+	ch[45] = "⠭"
+	ch[46] = "⠮"
+	ch[47] = "⠯"
+	ch[48] = "⠰"
+	ch[49] = "⠱"
+	ch[50] = "⠲"
+	ch[51] = "⠳"
+	ch[52] = "⠴"
+	ch[53] = "⠵"
+	ch[54] = "⠶"
+	ch[55] = "⠷"
+	ch[56] = "⠸"
+	ch[57] = "⠹"
+	ch[58] = "⠺"
+	ch[59] = "⠻"
+	ch[60] = "⠼"
+	ch[61] = "⠽"
+	ch[62] = "⠾"
+	ch[63] = "⠿"
+	ch[64] = "⡀"
+	ch[65] = "⡁"
+	ch[66] = "⡂"
+	ch[67] = "⡃"
+	ch[68] = "⡄"
+	ch[69] = "⡅"
+	ch[70] = "⡆"
+	ch[71] = "⡇"
+	ch[72] = "⡈"
+	ch[73] = "⡉"
+	ch[74] = "⡊"
+	ch[75] = "⡋"
+	ch[76] = "⡌"
+	ch[77] = "⡍"
+	ch[78] = "⡎"
+	ch[79] = "⡏"
+	ch[80] = "⡐"
+	ch[81] = "⡑"
+	ch[82] = "⡒"
+	ch[83] = "⡓"
+	ch[84] = "⡔"
+	ch[85] = "⡕"
+	ch[86] = "⡖"
+	ch[87] = "⡗"
+	ch[88] = "⡘"
+	ch[89] = "⡙"
+	ch[90] = "⡚"
+	ch[91] = "⡛"
+	ch[92] = "⡜"
+	ch[93] = "⡝"
+	ch[94] = "⡞"
+	ch[95] = "⡟"
+	ch[96] = "⡠"
+	ch[97] = "⡡"
+	ch[98] = "⡢"
+	ch[99] = "⡣"
+	ch[100] = "⡤"
+	ch[101] = "⡥"
+	ch[102] = "⡦"
+	ch[103] = "⡧"
+	ch[104] = "⡨"
+	ch[105] = "⡩"
+	ch[106] = "⡪"
+	ch[107] = "⡫"
+	ch[108] = "⡬"
+	ch[109] = "⡭"
+	ch[110] = "⡮"
+	ch[111] = "⡯"
+	ch[112] = "⡰"
+	ch[113] = "⡱"
+	ch[114] = "⡲"
+	ch[115] = "⡳"
+	ch[116] = "⡴"
+	ch[117] = "⡵"
+	ch[118] = "⡶"
+	ch[119] = "⡷"
+	ch[120] = "⡸"
+	ch[121] = "⡹"
+	ch[122] = "⡺"
+	ch[123] = "⡻"
+	ch[124] = "⡼"
+	ch[125] = "⡽"
+	ch[126] = "⡾"
+	ch[127] = "⡿"
+	ch[128] = "⢀"
+	ch[129] = "⢁"
+	ch[130] = "⢂"
+	ch[131] = "⢃"
+	ch[132] = "⢄"
+	ch[133] = "⢅"
+	ch[134] = "⢆"
+	ch[135] = "⢇"
+	ch[136] = "⢈"
+	ch[137] = "⢉"
+	ch[138] = "⢊"
+	ch[139] = "⢋"
+	ch[140] = "⢌"
+	ch[141] = "⢍"
+	ch[142] = "⢎"
+	ch[143] = "⢏"
+	ch[144] = "⢐"
+	ch[145] = "⢑"
+	ch[146] = "⢒"
+	ch[147] = "⢓"
+	ch[148] = "⢔"
+	ch[149] = "⢕"
+	ch[150] = "⢖"
+	ch[151] = "⢗"
+	ch[152] = "⢘"
+	ch[153] = "⢙"
+	ch[154] = "⢚"
+	ch[155] = "⢛"
+	ch[156] = "⢜"
+	ch[157] = "⢝"
+	ch[158] = "⢞"
+	ch[159] = "⢟"
+	ch[160] = "⢠"
+	ch[161] = "⢡"
+	ch[162] = "⢢"
+	ch[163] = "⢣"
+	ch[164] = "⢤"
+	ch[165] = "⢥"
+	ch[166] = "⢦"
+	ch[167] = "⢧"
+	ch[168] = "⢨"
+	ch[169] = "⢩"
+	ch[170] = "⢪"
+	ch[171] = "⢫"
+	ch[172] = "⢬"
+	ch[173] = "⢭"
+	ch[174] = "⢮"
+	ch[175] = "⢯"
+	ch[176] = "⢰"
+	ch[177] = "⢱"
+	ch[178] = "⢲"
+	ch[179] = "⢳"
+	ch[180] = "⢴"
+	ch[181] = "⢵"
+	ch[182] = "⢶"
+	ch[183] = "⢷"
+	ch[184] = "⢸"
+	ch[185] = "⢹"
+	ch[186] = "⢺"
+	ch[187] = "⢻"
+	ch[188] = "⢼"
+	ch[189] = "⢽"
+	ch[190] = "⢾"
+	ch[191] = "⢿"
+	ch[192] = "⣀"
+	ch[193] = "⣁"
+	ch[194] = "⣂"
+	ch[195] = "⣃"
+	ch[196] = "⣄"
+	ch[197] = "⣅"
+	ch[198] = "⣆"
+	ch[199] = "⣇"
+	ch[200] = "⣈"
+	ch[201] = "⣉"
+	ch[202] = "⣊"
+	ch[203] = "⣋"
+	ch[204] = "⣌"
+	ch[205] = "⣍"
+	ch[206] = "⣎"
+	ch[207] = "⣏"
+	ch[208] = "⣐"
+	ch[209] = "⣑"
+	ch[210] = "⣒"
+	ch[211] = "⣓"
+	ch[212] = "⣔"
+	ch[213] = "⣕"
+	ch[214] = "⣖"
+	ch[215] = "⣗"
+	ch[216] = "⣘"
+	ch[217] = "⣙"
+	ch[218] = "⣚"
+	ch[219] = "⣛"
+	ch[220] = "⣜"
+	ch[221] = "⣝"
+	ch[222] = "⣞"
+	ch[223] = "⣟"
+	ch[224] = "⣠"
+	ch[225] = "⣡"
+	ch[226] = "⣢"
+	ch[227] = "⣣"
+	ch[228] = "⣤"
+	ch[229] = "⣥"
+	ch[230] = "⣦"
+	ch[231] = "⣧"
+	ch[232] = "⣨"
+	ch[233] = "⣩"
+	ch[234] = "⣪"
+	ch[235] = "⣫"
+	ch[236] = "⣬"
+	ch[237] = "⣭"
+	ch[238] = "⣮"
+	ch[239] = "⣯"
+	ch[240] = "⣰"
+	ch[241] = "⣱"
+	ch[242] = "⣲"
+	ch[243] = "⣳"
+	ch[244] = "⣴"
+	ch[245] = "⣵"
+	ch[246] = "⣶"
+	ch[247] = "⣷"
+	ch[248] = "⣸"
+	ch[249] = "⣹"
+	ch[250] = "⣺"
+	ch[251] = "⣻"
+	ch[252] = "⣼"
+	ch[253] = "⣽"
+	ch[254] = "⣾"
+	ch[255] = "⣿"
+	height = 24 * 4
+	width = 80 * 2
+	number = "^[-+]?([0-9]+[.]?[0-9]*|[.][0-9]+)([eE][-+]?[0-9]+)?$"
+}
+
+# ignore blank lines
+NF == 0 {
+	next
+}
+
+# for bottom
+$1 == "label" {
+	sub(/^ *label */, "")
+	label = $0
+	next
+}
+
+# ticks for x-axis
+NF >= 3 && $1 == "bottom" && $2 == "ticks" {
+	for (i = 3; i <= NF; i++)
+		bticks[++nb] = $i
+	next
+}
+
+# ticks for y-axis
+NF >= 3 && $1 == "left" && $2 == "ticks" {
+	for (i = 3; i <= NF; i++)
+		lticks[++nl] = $i
+	next
+}
+
+# xmin ymin xmax ymax
+NF == 5 && $1 == "range" {
+	xmin = $2
+	ymin = $3
+	xmax = $4
+	ymax = $5
+	next
+}
+
+# set height
+NF == 2 && $1 == "height" {
+	height = $2
+	next
+}
+
+# set width
+NF == 2 && $1 == "width" {
+	width = $2
+	next
+}
+
+# pair of numbers
+NF == 2 && $1 ~ number && $2 ~ number {
+	nd++            # count numbers of data points
+	x[nd] = $1
+	y[nd] = $2
+	next
+}
+
+# pair of numbers
+NF == 1 && $1 ~ number {
+	nd++            # count numbers of data points
+	x[nd] = nd
+	y[nd] = $1
+	next
+}
+
+# invalid line
+{
+	err(FILENAME ":" FNR ": invalid command")
+}
+
+# draw graph
+END {
+	if (error)
+		exit error
+	if (xmin == "") {       # no range was given; compute it
+		xmin = xmax = x[1]
+		ymin = ymax = y[1]
+		for (i = 2; i <= nd; i++) {
+			if (x[i] < xmin) xmin = x[i]
+			if (x[i] > xmax) xmax = x[i]
+			if (y[i] < ymin) ymin = y[i]
+			if (y[i] > ymax) ymax = y[i]
+		}
+	}
+	offx = length(xmax)
+	offy = length(ymax)
+	ticks()
+	data()
+	draw()
+	if (warning)
+		exit warning
+}
