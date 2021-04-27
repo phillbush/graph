@@ -1,23 +1,10 @@
 #!/usr/bin/awk -f
 
-# show usage
-function usage() {
-	printf "usage: progname [options] arguments ...\n" >"/dev/stderr"
-	error = 1
-	exit error
-}
-
 # print error and exit
 function err(str) {
 	printf "graph: %s\n", str >"/dev/stderr"
 	error = 1
 	exit error
-}
-
-# print warning
-function warn(str) {
-	printf "graph: %s\n", str >"/dev/stderr"
-	warning = 1
 }
 
 # scale x-value
@@ -457,6 +444,4 @@ END {
 	ticks()
 	data()
 	draw()
-	if (warning)
-		exit warning
 }
